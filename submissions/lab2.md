@@ -54,3 +54,27 @@ In `data-flow-diagram.png`, the arrow **User Browser → Juice Shop Application*
 ### Honesty check
 Yes, the total dropped by 3 (≈13%), not over 50%. The changes fixed only the most obvious transport-layer issues — flipping a protocol field or adding an encryption flag costs minutes of work. The remaining 20 risks require architectural changes (mTLS between components, a secrets vault, WAF, 2FA, hardened base images) or application-level fixes (input sanitisation for XSS/CSRF, SSRF allowlists). This illustrates a classic cost-benefit asymmetry: perimeter hardening is cheap and fast but eliminates only a small fraction of the total risk surface; the expensive application-level work is where most risk actually lives.
 
+
+## Bonus Task: Auth Flow Threat Model
+
+### Risk count
+| Severity | Count |
+|----------|------:|
+| Critical |     0 |
+| High     |     1 |
+| Elevated |     6 |
+| Medium   |    19 |
+| Low      |     6 |
+| **Total**|**32** |
+
+### Three auth-specific risks NOT in the baseline model's top 5
+
+1. **sql-nosql-injection** — STRIDE: **T** (Tampering) — The Auth API passes user-supplied login input directly into SQL queries against the User Credential Store. Mitigation: enforce parameterized queries / prepared statements for all credential lookups; validate and sanitize all user input server-side before it reaches the database layer.
+
+2. **unguarded-access-from-internet** (affecting auth-api) — STRIDE: **S** (Spoofing) — The Auth API is reachable directly from the Internet trust boundary without a WAF or rate-limiting layer in front of it, making brute-force and credential-stuffing attacks trivial. Mitigation: place a WAF or reverse proxy with rate limiting and account-lockout policy in front of the login endpoint; consider CAPTCHA after N failed attempts.
+
+3. **missing-vault** (affecting user-credential-store) — STRIDE: **I** (Information Disclosure) — The JWT signing key and database credentials are stored directly in the container environment rather than in a dedicated secrets vault, meaning any container escape or environment variable leak exposes them. Mitigation: store all secrets (JWT signing key, DB credentials) in a secrets manager (e.g. HashiCorp Vault or Docker secrets) and inject them at runtime; never hardcode or log them.
+
+### Reflection
+Building the focused auth model surfaced `sql-nosql-injection` (High) and `unguarded-access-from-internet` on the login endpoint — both absent from the baseline model's top 5 — because the baseline treats the Juice Shop as a single monolithic process and never models the internal credential-validation data flow separately. Feature-level threat models force you to name every data asset that crosses a component boundary (credentials → Auth API → DB), which is precisely where injection and spoofing risks live. Architecture-level models are good at transport and boundary risks; feature-level models are necessary to catch logic and injection risks that only appear when you zoom in.
+
