@@ -93,11 +93,10 @@ Actions completed:
 
 - Workflow file: `.github/workflows/lab1-smoke.yml`
 - Trigger: `pull_request` on `main`
-- Run URL (must be green): *(link appears in Actions tab after PR is opened)*
-- Workflow run duration: ~45s
+- Run URL (must be green): https://github.com/Wilikson173/DevSecOps-Intro/actions/runs/27428430062/job/81072211251
+- Workflow run duration: ~23s
 - Curl response excerpt:
   ```
-  {"version":"20.0.0"}
-  HTTP 200
-  Juice Shop is healthy — smoke test passed.
+  Homepage HTTP status: 200
+  HTTP 200 confirmed — smoke test passed.
   ```
